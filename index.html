@@ -3,35 +3,236 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Visitor Analytics Dashboard</title>
-    <link rel="stylesheet" href="style.css">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <title>Unlock Link - Secure Gateway</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f3f4f6;
+        }
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
 </head>
-<body>
+<body class="min-h-screen flex items-center justify-center p-4 bg-gray-50">
 
-    <div class="dashboard-container">
-        <header>
-            <h1>Visitor Analytics Dashboard</h1>
-            <p>Tracking insights for your profile and projects</p>
-        </header>
-
-        <main>
-            <div class="status-card">
-              <h3>Current Session Status</h3>
-                <p id="status-text">Tracking visitor data...</p>
+    <!-- Main Card Container -->
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden transition-all">
+        
+        <!-- Header -->
+        <div class="bg-blue-600 p-6 text-center text-white">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-500 mb-4 shadow-inner">
+                <i class="ph ph-link text-3xl"></i>
             </div>
+            <h1 class="text-2xl font-bold mb-1">Link Protected</h1>
+            <p class="text-blue-100 text-sm">Please verify your details to continue to the destination.</p>
+        </div>
 
-            <div class="info-box">
-                <h4>Data being analyzed:</h4>
-                <ul>
-                    <li>IP Address & Location</li>
-                    <li>Browser & Device Type</li>
-                    <li>Timestamp of Visit</li>
-                </ul>
-            </div>
-        </main>
+        <!-- Form Section -->
+        <div class="p-6 md:p-8">
+            <form id="gatewayForm" class="space-y-5">
+                
+                <!-- Name Input -->
+                <div>
+                    <label for="userName" class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="ph ph-user text-gray-400 text-lg"></i>
+                        </div>
+                        <input type="text" id="userName" required
+                            class="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors"
+                            placeholder="John Doe">
+                    </div>
+                </div>
+
+                <!-- Email Input -->
+                <div>
+                    <label for="userEmail" class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="ph ph-envelope-simple text-gray-400 text-lg"></i>
+                        </div>
+                        <input type="email" id="userEmail" required
+                            class="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors"
+                            placeholder="john@example.com">
+                    </div>
+                </div>
+
+                <!-- Error Message Container -->
+                <div id="errorMessage" class="hidden bg-red-50 text-red-600 text-sm p-3 rounded-lg flex items-start">
+                    <i class="ph ph-warning-circle text-lg mr-2 mt-0.5"></i>
+                    <span id="errorText">An error occurred.</span>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" id="submitBtn"
+                    class="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+                    <span id="btnText">Continue to Link</span>
+                    <i id="btnIcon" class="ph ph-arrow-right ml-2 text-lg"></i>
+                    <div id="btnLoader" class="loader hidden"></div>
+                </button>
+                
+                <p class="text-xs text-center text-gray-400 mt-4">
+                    <i class="ph ph-lock-key inline align-middle mr-1"></i> Your information is secure.
+                </p>
+            </form>
+        </div>
     </div>
 
-    <script src="tracker.js"></script>
+    <!-- Firebase Scripts -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // ==========================================
+        // FIREBASE CONFIGURATION
+        // ==========================================
+        let firebaseConfig;
+        let appId = 'github-gateway-app';
+
+        // Check if running in the preview environment or on GitHub
+        if (typeof __firebase_config !== 'undefined') {
+            // Running in preview environment
+            firebaseConfig = JSON.parse(__firebase_config);
+            if (typeof __app_id !== 'undefined') appId = __app_id;
+        } else {
+            // ====================================================================
+            // GITHUB DEPLOYMENT INSTRUCTIONS:
+            // When you upload this to GitHub, replace the values below with your
+            // own Firebase Project configuration from the Firebase Console.
+            // ====================================================================
+            firebaseConfig = {
+                apiKey: "YOUR_API_KEY",
+                authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+                projectId: "YOUR_PROJECT_ID",
+                storageBucket: "YOUR_PROJECT_ID.appspot.com",
+                messagingSenderId: "YOUR_SENDER_ID",
+                appId: "YOUR_APP_ID"
+            };
+        }
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // UI Elements
+        const form = document.getElementById('gatewayForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const btnText = document.getElementById('btnText');
+        const btnIcon = document.getElementById('btnIcon');
+        const btnLoader = document.getElementById('btnLoader');
+        const errorMessage = document.getElementById('errorMessage');
+        const errorText = document.getElementById('errorText');
+
+        // Helper: Get target URL from query parameters
+        // Example: yourwebsite.com/?target=https://google.com
+        function getTargetUrl() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('target');
+        }
+
+        // Set up the page based on the target URL
+        const targetUrl = getTargetUrl();
+        if (!targetUrl) {
+            // Show a warning if no target is provided, but allow testing
+            console.warn("No '?target=' parameter found in URL. Using a dummy link for testing.");
+        }
+
+        // Handle Form Submission
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Get values
+            const name = document.getElementById('userName').value.trim();
+            const email = document.getElementById('userEmail').value.trim();
+            const destination = targetUrl || 'https://example.com (Test Mode)';
+
+            if (!name || !email) return;
+
+            // Show loading state
+            setLoading(true);
+            hideError();
+
+            try {
+                // 1. Authenticate anonymously (Required before saving to DB)
+                await signInAnonymously(auth);
+
+                // 2. Prepare data path (Using strict structure)
+                // When on GitHub, you can change this path, but this format works well.
+                const leadsCollection = collection(db, 'artifacts', appId, 'public', 'data', 'leads');
+
+                // 3. Save data to Firestore
+                await addDoc(leadsCollection, {
+                    name: name,
+                    email: email,
+                    targetVisited: destination,
+                    timestamp: new Date().toISOString(),
+                    userAgent: navigator.userAgent
+                });
+
+                // 4. Success! Redirect the user
+                btnText.textContent = "Redirecting...";
+                
+                setTimeout(() => {
+                    if (targetUrl) {
+                        window.location.href = targetUrl;
+                    } else {
+                        // Just for testing if no URL was provided
+                        alert("Data saved! In a real scenario, you would be redirected to: " + destination);
+                        setLoading(false);
+                        form.reset();
+                    }
+                }, 800); // Small delay for UX
+
+            } catch (error) {
+                console.error("Error saving data:", error);
+                showError("Unable to verify details at this time. Please try again.");
+                setLoading(false);
+            }
+        });
+
+        // UI Helpers
+        function setLoading(isLoading) {
+            submitBtn.disabled = isLoading;
+            if (isLoading) {
+                btnText.textContent = "Verifying";
+                btnIcon.classList.add('hidden');
+                btnLoader.classList.remove('hidden');
+                submitBtn.classList.add('opacity-80', 'cursor-not-allowed');
+            } else {
+                btnText.textContent = "Continue to Link";
+                btnIcon.classList.remove('hidden');
+                btnLoader.classList.add('hidden');
+                submitBtn.classList.remove('opacity-80', 'cursor-not-allowed');
+            }
+        }
+
+        function showError(msg) {
+            errorText.textContent = msg;
+            errorMessage.classList.remove('hidden');
+        }
+
+        function hideError() {
+            errorMessage.classList.add('hidden');
+        }
+    </script>
 </body>
 </html>
