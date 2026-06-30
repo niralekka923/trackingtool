@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visitor Analytics Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+    <div class="dashboard-container">
+        <header>
+            <h1>Visitor Analytics Dashboard</h1>
+            <p>Tracking insights for your profile and projects</p>
+        </header>
+
+        <main>
+            <div class="status-card">
+              <h3>Current Session Status</h3>
+                <p id="status-text">Tracking visitor data...</p>
+            </div>
+
+            <div class="info-box">
+                <h4>Data being analyzed:</h4>
+                <ul>
+                    <li>IP Address & Location</li>
+                    <li>Browser & Device Type</li>
+                    <li>Timestamp of Visit</li>
+                </ul>
+            </div>
+        </main>
+    </div>
+
+    <script src="tracker.js"></script>
+</body>
+</html>
